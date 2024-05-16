@@ -4,35 +4,40 @@ import (
 	"api/src/database"
 	"api/src/models"
 	"api/src/repository"
+	"api/src/responses"
 	"encoding/json"
-	"fmt"
 	"io"
-	"log"
 	"net/http"
 )
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	requestBody, createUserError := io.ReadAll(r.Body)
 	if createUserError != nil {
-		log.Fatal(createUserError)
+		responses.Error(w, http.StatusUnprocessableEntity, createUserError)
+		return
 	}
 
 	var user models.User
 	if createUserError = json.Unmarshal(requestBody, &user); createUserError != nil {
-		log.Fatal(createUserError)
+		responses.Error(w, http.StatusBadRequest, createUserError)
+		return
 	}
 
 	db, createUserError := database.Connect()
 	if createUserError != nil {
-		log.Fatal(createUserError)
+		responses.Error(w, http.StatusInternalServerError, createUserError)
+		return
 	}
+	defer db.Close()
+
 	repository := repository.NewUserRepository(db)
-	userId, createUserError := repository.Create(user)
+	user.ID, createUserError = repository.Create(user)
 	if createUserError != nil {
-		log.Fatal(createUserError)
+		responses.Error(w, http.StatusInternalServerError, createUserError)
+		return
 	}
 
-	w.Write([]byte(fmt.Sprintf("Inserted id: %d", userId)))
+	responses.JSON(w, http.StatusCreated, user)
 }
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Getting Users!"))
