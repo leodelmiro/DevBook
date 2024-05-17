@@ -15,8 +15,8 @@ type User struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 }
 
-func (user *User) Prepare() error {
-	if prepareError := user.validate(); prepareError != nil {
+func (user *User) Prepare(step string) error {
+	if prepareError := user.validate(step); prepareError != nil {
 		return prepareError
 	}
 
@@ -24,7 +24,7 @@ func (user *User) Prepare() error {
 	return nil
 }
 
-func (user *User) validate() error {
+func (user *User) validate(step string) error {
 	if user.Name == "" {
 		return errors.New("name is a required field and cannot be empty")
 	}	
@@ -37,7 +37,7 @@ func (user *User) validate() error {
 		return errors.New("email is a required field and cannot be empty")
 	}	
 	
-	if user.Password == "" {
+	if step == "create" && user.Password == "" {
 		return errors.New("password is a required field and cannot be empty")
 	}
 

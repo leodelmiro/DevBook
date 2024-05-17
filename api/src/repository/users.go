@@ -14,14 +14,14 @@ func NewUserRepository(db *sql.DB) *users {
 	return &users{db}
 }
 
-func (repository users) Create(users models.User) (uint64, error) {
+func (repository users) Create(user models.User) (uint64, error) {
 	statement, createError := repository.db.Prepare("INSERT INTO users (name, nick, email, password) values (?, ?, ?, ?)")
 	if createError != nil {
 		return 0, createError
 	}
 	defer statement.Close()
 
-	result, createError := statement.Exec(users.Name, users.Nick, users.Email, users.Password)
+	result, createError := statement.Exec(user.Name, user.Nick, user.Email, user.Password)
 	if createError != nil {
 		return 0, createError
 	}
@@ -34,7 +34,7 @@ func (repository users) Create(users models.User) (uint64, error) {
 	return uint64(lastIdInserted), nil
 }
 
-func (repository users) GetUsersBy(nameOrNick string) ([]models.User, error) {
+func (repository users) Get(nameOrNick string) ([]models.User, error) {
 	nameOrNick = fmt.Sprintf("%%%s%%", nameOrNick) //%nameOrNick%
 
 	rows, getUserByError := repository.db.Query("select id, name, nick, email, createdAt from users where name like ? or nick like ?", nameOrNick, nameOrNick)
@@ -57,7 +57,7 @@ func (repository users) GetUsersBy(nameOrNick string) ([]models.User, error) {
 	return users, nil
 }
 
-func (repository users) GetUsersById(id uint64) (models.User, error) {
+func (repository users) GetById(id uint64) (models.User, error) {
 	row, getUserByIdError := repository.db.Query("select id, name, nick, email, createdAt from users where id = ?", id)
 
 	if getUserByIdError != nil {
@@ -76,3 +76,20 @@ func (repository users) GetUsersById(id uint64) (models.User, error) {
 
 	return user, nil
 }
+
+func (repository users) Update(id uint64, user models.User) error {
+	statement, updateError := repository.db.Prepare("update users set name = ?, nick = ?, email = ? where id = ?")
+
+	if updateError != nil {
+		return updateError
+	}
+
+	defer statement.Close()
+
+	if _, updateError = statement.Exec(user.Name, user.Nick, user.Email, id); updateError != nil {
+		return updateError
+	}
+
+	return nil
+}
+
