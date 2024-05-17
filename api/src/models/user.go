@@ -1,6 +1,7 @@
 package models
 
 import (
+	"api/src/security"
 	"errors"
 	"strings"
 	"time"
@@ -22,19 +23,22 @@ func (user *User) Prepare(step string) error {
 		return prepareError
 	}
 
-	user.format()
+	if prepareError := user.format(step); prepareError != nil {
+		return prepareError
+	}
+
 	return nil
 }
 
 func (user *User) validate(step string) error {
 	if user.Name == "" {
 		return errors.New("name is a required field and cannot be empty")
-	}	
-	
+	}
+
 	if user.Nick == "" {
 		return errors.New("nick is a required field and cannot be empty")
-	}	
-	
+	}
+
 	if user.Email == "" {
 		return errors.New("email is a required field and cannot be empty")
 	}
@@ -42,7 +46,7 @@ func (user *User) validate(step string) error {
 	if validateError := checkmail.ValidateFormat(user.Email); validateError != nil {
 		return errors.New("email is invalid format")
 	}
-	
+
 	if step == "create" && user.Password == "" {
 		return errors.New("password is a required field and cannot be empty")
 	}
@@ -50,8 +54,19 @@ func (user *User) validate(step string) error {
 	return nil
 }
 
-func (user *User) format() {
+func (user *User) format(step string) error {
 	user.Name = strings.TrimSpace(user.Name)
 	user.Nick = strings.TrimSpace(user.Nick)
 	user.Email = strings.TrimSpace(user.Email)
+
+	if step == "create" {
+		hashPassowrd, formatError := security.Hash(user.Password)
+		if formatError != nil {
+			return formatError
+		}
+
+		user.Password = string(hashPassowrd)
+	}
+
+	return nil
 }
