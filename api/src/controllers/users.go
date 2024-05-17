@@ -6,9 +6,13 @@ import (
 	"api/src/repository"
 	"api/src/responses"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -49,17 +53,17 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	nameOrNick := strings.ToLower(r.URL.Query().Get("user"))
 
-	db, getUserError := database.Connect()
-	if getUserError != nil {
-		responses.Error(w, http.StatusInternalServerError, getUserError)
+	db, getUsersError := database.Connect()
+	if getUsersError != nil {
+		responses.Error(w, http.StatusInternalServerError, getUsersError)
 		return
 	}
 	defer db.Close()
 
 	repository := repository.NewUserRepository(db)
-	users, getUserError := repository.GetUsersBy(nameOrNick)
-	if getUserError != nil {
-		responses.Error(w, http.StatusInternalServerError, getUserError)
+	users, getUsersError := repository.GetUsersBy(nameOrNick)
+	if getUsersError != nil {
+		responses.Error(w, http.StatusInternalServerError, getUsersError)
 		return
 	}
 
@@ -67,7 +71,34 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Getting User!"))
+	parameters := mux.Vars(r)
+
+	userId, getUserError := strconv.ParseUint(parameters["userId"], 10, 64)
+	if getUserError != nil {
+		responses.Error(w, http.StatusBadRequest, getUserError)
+		return
+	}
+
+	db, getUsersError := database.Connect()
+	if getUsersError != nil {
+		responses.Error(w, http.StatusInternalServerError, getUsersError)
+		return
+	}
+	defer db.Close()
+
+	repository := repository.NewUserRepository(db)
+	user, getUserError := repository.GetUsersById(userId)
+	if getUserError != nil {
+		responses.Error(w, http.StatusInternalServerError, getUserError)
+		return
+	}
+
+	if user.ID == 0 {
+		responses.Error(w, http.StatusNotFound, errors.New("Not found"))
+		return 
+	}
+
+	responses.JSON(w, http.StatusOK, user)
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
