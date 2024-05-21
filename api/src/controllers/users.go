@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"api/src/auth"
 	"api/src/database"
 	"api/src/models"
 	"api/src/repository"
@@ -110,6 +111,17 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tokenUserId, updateUserError := auth.ExtractUserId(r)
+	if updateUserError != nil {
+		responses.Error(w, http.StatusUnauthorized, updateUserError)
+		return
+	}
+
+	if tokenUserId != userId {
+		responses.Error(w, http.StatusForbidden, errors.New("the userId must be the same as the one from the token"))
+		return
+	}
+	
 	requestBody, updateUserError := io.ReadAll(r.Body)
 	if updateUserError != nil {
 		responses.Error(w, http.StatusUnprocessableEntity, updateUserError)
@@ -149,6 +161,18 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userId, deleteUserError := strconv.ParseUint(parameters["userId"], 10, 64)
 	if deleteUserError != nil {
 		responses.Error(w, http.StatusBadRequest, deleteUserError)
+		return
+	}
+
+	
+	tokenUserId, deleteUserError := auth.ExtractUserId(r)
+	if deleteUserError != nil {
+		responses.Error(w, http.StatusUnauthorized, deleteUserError)
+		return
+	}
+
+	if tokenUserId != userId {
+		responses.Error(w, http.StatusForbidden, errors.New("the userId must be the same as the one from the token"))
 		return
 	}
 

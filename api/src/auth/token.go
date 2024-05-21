@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,6 +44,25 @@ func getToken(r *http.Request) string {
 	}
 
 	return ""
+}
+
+func ExtractUserId(r *http.Request) (uint64, error) {
+	tokenString := getToken(r)
+	token, extractUserIdError := jwt.Parse(tokenString, getKeyCheck)
+	if extractUserIdError != nil {
+		return 0, extractUserIdError
+	}
+
+	if permissions, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		userID, extractUserIdError := strconv.ParseUint(fmt.Sprintf("%.0f", permissions["userId"]), 10, 64)
+		if extractUserIdError != nil {
+			return 0, extractUserIdError
+		}
+		
+		return userID, nil
+	}
+
+	return 0, errors.New("invalid token")
 }
 
 func getKeyCheck(token *jwt.Token) (interface{}, error) {
