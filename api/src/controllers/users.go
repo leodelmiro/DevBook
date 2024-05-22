@@ -6,6 +6,7 @@ import (
 	"api/src/models"
 	"api/src/repository"
 	"api/src/responses"
+	"api/src/security"
 	"encoding/json"
 	"errors"
 	"io"
@@ -96,7 +97,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
 	if user.ID == 0 {
 		responses.Error(w, http.StatusNotFound, errors.New("not found"))
-		return 
+		return
 	}
 
 	responses.JSON(w, http.StatusOK, user)
@@ -121,7 +122,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		responses.Error(w, http.StatusForbidden, errors.New("the userId must be the same as the one from the token"))
 		return
 	}
-	
+
 	requestBody, updateUserError := io.ReadAll(r.Body)
 	if updateUserError != nil {
 		responses.Error(w, http.StatusUnprocessableEntity, updateUserError)
@@ -164,7 +165,6 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	
 	tokenUserId, deleteUserError := auth.ExtractUserId(r)
 	if deleteUserError != nil {
 		responses.Error(w, http.StatusUnauthorized, deleteUserError)
@@ -273,6 +273,7 @@ func GetFollowers(w http.ResponseWriter, r *http.Request) {
 	db, getFollowersError := database.Connect()
 	if getFollowersError != nil {
 		responses.Error(w, http.StatusInternalServerError, getFollowersError)
+		return
 	}
 	defer db.Close()
 
@@ -280,6 +281,7 @@ func GetFollowers(w http.ResponseWriter, r *http.Request) {
 	followers, getFollowersError := repository.GetFollowers(userId)
 	if getFollowersError != nil {
 		responses.Error(w, http.StatusInternalServerError, getFollowersError)
+		return
 	}
 
 	responses.JSON(w, http.StatusOK, followers)
@@ -296,6 +298,7 @@ func GetFollowing(w http.ResponseWriter, r *http.Request) {
 	db, getFollowingError := database.Connect()
 	if getFollowingError != nil {
 		responses.Error(w, http.StatusInternalServerError, getFollowingError)
+		return
 	}
 	defer db.Close()
 
@@ -303,7 +306,73 @@ func GetFollowing(w http.ResponseWriter, r *http.Request) {
 	following, getFollowingError := repository.GetFollowing(userId)
 	if getFollowingError != nil {
 		responses.Error(w, http.StatusInternalServerError, getFollowingError)
+		return
 	}
 
 	responses.JSON(w, http.StatusOK, following)
+}
+
+func UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	parameters := mux.Vars(r)
+
+	userId, updatePasswordError := strconv.ParseUint(parameters["userId"], 10, 64)
+	if updatePasswordError != nil {
+		responses.Error(w, http.StatusBadRequest, updatePasswordError)
+		return
+	}
+
+	tokenUserId, updatePasswordError := auth.ExtractUserId(r)
+	if updatePasswordError != nil {
+		responses.Error(w, http.StatusUnauthorized, updatePasswordError)
+		return
+	}
+
+	if tokenUserId != userId {
+		responses.Error(w, http.StatusForbidden, errors.New("the userId must be the same as the one from the token"))
+		return
+	}
+
+	requestBody, updatePasswordError := io.ReadAll(r.Body)
+	if updatePasswordError != nil {
+		responses.Error(w, http.StatusUnprocessableEntity, updatePasswordError)
+		return
+	}
+
+	var password models.Password
+	if updatePasswordError = json.Unmarshal(requestBody, &password) ; updatePasswordError != nil{
+		responses.Error(w, http.StatusBadRequest, updatePasswordError)
+		return
+	}
+
+	db, updatePasswordError := database.Connect()
+	if updatePasswordError != nil {
+		responses.Error(w, http.StatusInternalServerError, updatePasswordError)
+		return
+	}
+	defer db.Close()
+
+	repository := repository.NewUserRepository(db)
+	savedPassword, updatePasswordError := repository.GetPassword(userId)
+	if updatePasswordError != nil {
+		responses.Error(w, http.StatusInternalServerError, updatePasswordError)
+		return
+	}
+
+	if updatePasswordError = security.CheckPassword(savedPassword, password.Current); updatePasswordError != nil {
+		responses.Error(w, http.StatusUnauthorized, errors.New("current password is not correct"))
+		return
+	}
+
+	newPasswordHashed, updatePasswordError := security.Hash(password.New)
+	if updatePasswordError != nil {
+		responses.Error(w, http.StatusBadRequest, updatePasswordError)
+		return
+	}
+
+	if updatePasswordError = repository.UpdatePassword(userId, string(newPasswordHashed)); updatePasswordError != nil {
+		responses.Error(w, http.StatusInternalServerError, updatePasswordError)
+		return
+	}
+
+	responses.JSON(w, http.StatusNoContent, nil)
 }

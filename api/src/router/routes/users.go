@@ -41,23 +41,29 @@ var routesUsers = []Route{
 		Method:        http.MethodPost,
 		Function:      controllers.FollowUser,
 		RequerireAuth: true,
-	},	
+	},
 	{
 		URI:           "/users/{userId}/unfollow",
 		Method:        http.MethodPost,
 		Function:      controllers.UnfollowUser,
 		RequerireAuth: true,
-	},	
+	},
 	{
 		URI:           "/users/{userId}/followers",
 		Method:        http.MethodGet,
 		Function:      controllers.GetFollowers,
 		RequerireAuth: true,
-	},	
+	},
 	{
 		URI:           "/users/{userId}/following",
 		Method:        http.MethodGet,
 		Function:      controllers.GetFollowing,
+		RequerireAuth: true,
+	},
+	{
+		URI:           "/users/{userId}/update-password",
+		Method:        http.MethodPost,
+		Function:      controllers.UpdatePassword,
 		RequerireAuth: true,
 	},
 }

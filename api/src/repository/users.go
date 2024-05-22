@@ -214,3 +214,36 @@ func (repository users) GetFollowing(userId uint64) ([]models.User, error) {
 
 	return users, nil
 }
+
+func (repository users) GetPassword(userId uint64) (string, error) {
+	row, getPasswordError := repository.db.Query("select password from users where id = ?", userId)
+	if getPasswordError != nil {
+		return "", getPasswordError
+	}
+	defer row.Close()
+
+	var user models.User
+
+	if row.Next() {
+		if getPasswordError = row.Scan(&user.Password); getPasswordError != nil {
+			return "", getPasswordError
+		}
+	}
+
+	return user.Password, nil
+}
+
+func (repository users) UpdatePassword(userId uint64, password string) error {
+	statement, updatePasswordError := repository.db.Prepare("update users set password = ? where id = ?")
+	if updatePasswordError != nil {
+		return updatePasswordError
+	}
+	defer statement.Close()
+
+	if _, updatePasswordError = statement.Exec(password, userId); updatePasswordError != nil {
+		return updatePasswordError
+	}
+
+	return nil
+}
+
