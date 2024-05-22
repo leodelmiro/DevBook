@@ -179,7 +179,36 @@ func (repository users) GetFollowers(userId uint64) ([]models.User, error) {
 		); getFollowersError != nil {
 			return nil, getFollowersError
 		}
-		
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func (repository users) GetFollowing(userId uint64) ([]models.User, error) {
+	rows, getFollowingError := repository.db.Query(`
+		select u.id, u.name, u.nick, u.email, u.createdAt
+		from users u inner join followers f on u.id = f.user_id where  f.follower_id = ?
+	`, userId)
+	if getFollowingError != nil {
+		return nil, getFollowingError
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var user models.User
+
+		if getFollowingError = rows.Scan(&user.ID,
+			&user.Name,
+			&user.Nick,
+			&user.Email,
+			&user.CreatedAt,
+		); getFollowingError != nil {
+			return nil, getFollowingError
+		}
+
 		users = append(users, user)
 	}
 
