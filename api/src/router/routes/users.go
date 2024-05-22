@@ -47,5 +47,11 @@ var routesUsers = []Route{
 		Method:        http.MethodPost,
 		Function:      controllers.UnfollowUser,
 		RequerireAuth: true,
+	},	
+	{
+		URI:           "/users/{userId}/followers",
+		Method:        http.MethodGet,
+		Function:      controllers.GetFollowers,
+		RequerireAuth: true,
 	},
 }

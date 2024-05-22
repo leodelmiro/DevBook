@@ -44,10 +44,10 @@ func (repository users) Get(nameOrNick string) ([]models.User, error) {
 
 	defer rows.Close()
 
-	var users = make([]models.User , 0)
+	var users = make([]models.User, 0)
 	for rows.Next() {
 		var user models.User
-		if getUserByError = rows.Scan(	&user.ID,&user.Name,&user.Nick,&user.Email,&user.CreatedAt) ; getUserByError != nil {
+		if getUserByError = rows.Scan(&user.ID, &user.Name, &user.Nick, &user.Email, &user.CreatedAt); getUserByError != nil {
 			return nil, getUserByError
 		}
 
@@ -69,7 +69,7 @@ func (repository users) GetById(id uint64) (models.User, error) {
 	var user models.User
 
 	if row.Next() {
-		if getUserByIdError = row.Scan(&user.ID,&user.Name,&user.Nick,&user.Email,&user.CreatedAt); getUserByIdError != nil {
+		if getUserByIdError = row.Scan(&user.ID, &user.Name, &user.Nick, &user.Email, &user.CreatedAt); getUserByIdError != nil {
 			return models.User{}, getUserByIdError
 		}
 	}
@@ -100,8 +100,8 @@ func (repository users) Delete(id uint64) error {
 	}
 	defer statement.Close()
 
-	if _,deleteError = statement.Exec(id); deleteError != nil {
-		 return deleteError
+	if _, deleteError = statement.Exec(id); deleteError != nil {
+		return deleteError
 	}
 
 	return nil
@@ -157,3 +157,31 @@ func (repository users) Unfollow(userId, followerId uint64) error {
 	return nil
 }
 
+func (repository users) GetFollowers(userId uint64) ([]models.User, error) {
+	rows, getFollowersError := repository.db.Query(`
+		select u.id, u.name, u.nick, u.email, u.createdAt
+		from users u inner join followers f on u.id = f.follower_id where f.user_id = ?
+	`, userId)
+	if getFollowersError != nil {
+		return nil, getFollowersError
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var user models.User
+
+		if getFollowersError = rows.Scan(&user.ID,
+			&user.Name,
+			&user.Nick,
+			&user.Email,
+			&user.CreatedAt,
+		); getFollowersError != nil {
+			return nil, getFollowersError
+		}
+		
+		users = append(users, user)
+	}
+
+	return users, nil
+}
