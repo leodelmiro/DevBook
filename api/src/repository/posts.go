@@ -100,3 +100,17 @@ func (repository Posts) Get(userId uint64) ([]models.Post, error) {
 
 	return posts, nil
 }
+
+func (repository Posts) Update(postId uint64, post models.Post) error {
+	statement, err := repository.db.Prepare("update posts set title = ?, content = ? where id = ?")
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+
+	if _, err = statement.Exec(post.Title, post.Content, postId); err != nil {
+		return err
+	}
+
+	return nil
+}
