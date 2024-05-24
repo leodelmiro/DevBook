@@ -176,3 +176,25 @@ func (repository Posts) Like(postId uint64) error {
 
 	return nil
 }
+
+func (repository Posts) Dislike(postId uint64) error {
+	statement, err := repository.db.Prepare(`
+		update posts set
+		likes = 
+		CASE 
+			WHEN likes > 0 THEN likes - 1
+			ELSE likes 
+		END 
+		where id = ?
+	`)
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+
+	if _, err = statement.Exec(postId); err != nil {
+		return err
+	}
+
+	return nil
+}

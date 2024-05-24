@@ -48,4 +48,10 @@ var routesPosts = []Route{
 		Function:    controllers.LikePost,
 		RequireAuth: true,
 	},
+	{
+		URI:         "/posts/{postId}/dislike",
+		Method:      http.MethodPost,
+		Function:    controllers.DislikePost,
+		RequireAuth: true,
+	},
 }
