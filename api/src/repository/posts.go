@@ -160,6 +160,19 @@ func (repository Posts) GetByUser(userId uint64) ([]models.Post, error) {
 		posts = append(posts, post)
 	}
 
-	return posts, nil 
+	return posts, nil
+}
 
+func (repository Posts) Like(postId uint64) error {
+	statement, err := repository.db.Prepare("update posts set likes = likes + 1 where id = ?")
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+
+	if _, err = statement.Exec(postId); err != nil {
+		return err
+	}
+
+	return nil
 }
