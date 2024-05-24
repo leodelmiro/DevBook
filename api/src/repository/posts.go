@@ -71,7 +71,7 @@ func (repository Posts) Get(userId uint64) ([]models.Post, error) {
 	inner join followers f on p.author_id = f.user_id
 	where u.id = ? or f.follower_id = ?
 	order by 1 desc`,
-	userId, userId,
+		userId, userId,
 	)
 
 	if err != nil {
@@ -109,6 +109,20 @@ func (repository Posts) Update(postId uint64, post models.Post) error {
 	defer statement.Close()
 
 	if _, err = statement.Exec(post.Title, post.Content, postId); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repository Posts) Delete(postId uint64) error {
+	statement, err := repository.db.Prepare("delete from posts where id = ?")
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+
+	if _, err = statement.Exec(postId); err != nil {
 		return err
 	}
 
